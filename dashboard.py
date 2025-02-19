@@ -3,16 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-import subprocess
-import sys
-
-# Ensure Matplotlib is installed
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "matplotlib"])
-    import matplotlib.pyplot as plt
-
 # Streamlit app title
 st.title("📊 Propeller Manufacturing Process Analysis")
 
