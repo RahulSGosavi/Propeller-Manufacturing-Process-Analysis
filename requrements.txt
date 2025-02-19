@@ -1,5 +1,5 @@
 streamlit
-matplotlib
+Matplotlib
 pandas
-numpy
+NumPy
 openpyxl
