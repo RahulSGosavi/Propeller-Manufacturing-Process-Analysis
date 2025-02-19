@@ -1,7 +1,10 @@
 pip freeze > requirements.txt
 
+pip install matplotlib
+
 streamlit
 pandas
 openpyxl
 matplotlib
 seaborn
+matplotlib
