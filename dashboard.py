@@ -1,14 +1,3 @@
-import subprocess
-import sys
-
-# Ensure required libraries are installed
-required_packages = ["matplotlib", "pandas", "numpy", "openpyxl"]
-for package in required_packages:
-    try:
-        __import__(package)
-    except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
