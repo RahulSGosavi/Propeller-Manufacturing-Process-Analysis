@@ -1,8 +1,0 @@
-pip freeze > requirements.txt
-
-streamlit
-pandas
-openpyxl
-matplotlib
-seaborn
-matplotlib
