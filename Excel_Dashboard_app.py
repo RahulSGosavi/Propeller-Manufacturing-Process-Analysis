@@ -11,6 +11,9 @@ uploaded_file = st.file_uploader("Upload an Excel file", type=["xlsx"])
 if uploaded_file:
     df = pd.read_excel(uploaded_file)
 
+    print("Available columns:", df.columns.tolist())  # Debugging line
+
+
     # --- PLOT 1: PIE CHART (Matplotlib) ---
     status_counts = df["Status"].value_counts()
     fig1, ax1 = plt.subplots()
