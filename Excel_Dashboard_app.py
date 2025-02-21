@@ -1,49 +1,83 @@
-
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import plotly.express as px
 
-# File Uploader
-st.title(":bar_chart:Excel Data Visualization App")
-uploaded_file = st.file_uploader("Upload an Excel file", type=["xlsx"])
+# Streamlit App Configuration
+st.set_page_config(layout="wide")
 
-if uploaded_file:
-    df = pd.read_excel(uploaded_file)
+# Title
+st.title("Propeller Performance Dashboard")
 
-    print("Available columns:", df.columns.tolist())  # Debugging line
+# Sidebar Section
+st.sidebar.title("Time Conversion Helper")
+units = st.sidebar.number_input("Enter number of units:", min_value=1.0, step=1.0, value=1.0)
+minutes_per_unit = 120
+converted_time = units * minutes_per_unit
+st.sidebar.write(f"{units} units = {converted_time} minutes")
 
+st.sidebar.subheader("Upload Excel or CSV File")
+uploaded_file = st.sidebar.file_uploader("Choose an Excel or CSV file", type=["xlsx", "csv"])
 
-    # --- PLOT 1: PIE CHART (Matplotlib) ---
-    status_counts = df["Status"].value_counts()
-    fig1, ax1 = plt.subplots()
-    ax1.pie(status_counts, labels=status_counts.index, autopct="%1.1f%%", colors=["green", "orange", "red"])
-    ax1.set_title("Status Distribution")
-    st.pyplot(fig1)
-
-    # --- PLOT 2: LINE GRAPH (Plotly) ---
-    fig2 = px.line(df, x=df.index, y=["Overall Efficiency", "Standard Overall Efficiency"],
-                   title="Overall Efficiency vs Standard Efficiency")
-    st.plotly_chart(fig2)
-
-    # --- RESULT INSIGHTS ---
-    st.subheader("🔍 Result Insights")
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith(".csv") else pd.read_excel(uploaded_file)
     
-    # 1️⃣ Insights for Pie Chart (Status)
-    most_common_status = status_counts.idxmax()
-    st.write(f"✅ The most common status is **{most_common_status}** with **{status_counts.max()}** entries.")
-
-    # 2️⃣ Insights for Efficiency
-    avg_efficiency = df["Overall Efficiency"].mean()
-    avg_standard = df["Standard Overall Efficiency"].mean()
-
-    if avg_efficiency > avg_standard:
-        efficiency_message = "Great! The overall efficiency is above the standard."
-    elif avg_efficiency < avg_standard:
-        efficiency_message = "⚠️ Warning: The overall efficiency is below the standard. Improvements are needed!"
+    # Clean column names
+    df.columns = df.columns.str.strip().str.lower()
+    
+    expected_columns = ["propeller", "date", "time", "handler", "preforming (yet-to-start)", "preforming (in-progress)",
+                        "moulding (yet-to-start)", "moulding (in-progress)", "cnc trimming", "trimming", "balancing", "polishing",
+                        "quality", "performance", "packaging", "shipping"]
+    missing_columns = [col for col in expected_columns if col not in df.columns]
+    
+    if not missing_columns:
+        # Convert data for grouped comparison
+        df_melted = df.melt(id_vars=["propeller", "date", "time", "handler"], 
+                            var_name="stage", value_name="status")
+        
+        # Ensure decimal formatting for Time
+        df_melted["time"] = df_melted["time"].astype(float).round(2)
+        
+        # Create Status Column if Missing
+        if "status" not in df_melted.columns:
+            df_melted["status"] = df_melted["stage"].apply(lambda x: "Completed" if "completed" in x.lower() else "In Progress")
+        
+        # Define color mapping
+        color_map = {
+            "Completed": "#1f77b4",  # Blue
+            "In Progress": "#ff7f0e",  # Orange
+            "Yet to Start": "#2ca02c"  # Green
+        }
+        
+        # Sidebar Insights
+        total_time = df_melted["time"].sum()
+        avg_time_per_stage = df_melted.groupby("stage")["time"].mean().round(2)
+        
+        st.sidebar.subheader("Performance Insights")
+        st.sidebar.write(f"Total Time Spent: {total_time} minutes")
+        st.sidebar.write("Average Time per Stage:")
+        st.sidebar.dataframe(avg_time_per_stage)
+        
+        # First Graph: Current Propeller vs. Batch Average
+        fig1 = px.bar(df_melted, x="stage", y="time", color="status",
+                      title="Current Propeller vs. Batch Average",
+                      labels={"time": "Minutes", "stage": "Production Stage"},
+                      barmode="group",
+                      color_discrete_map=color_map)
+        
+        # Second Graph: Stacked Bar Chart for Time Distribution
+        fig2 = px.bar(df_melted, x="stage", y="time", color="status",
+                      title="Time Distribution Across Stages",
+                      labels={"time": "Minutes", "stage": "Production Stage"},
+                      barmode="stack",
+                      color_discrete_map=color_map)
+        
+        # Improve layout
+        fig1.update_layout(bargap=0.2, bargroupgap=0.1)
+        fig2.update_layout(bargap=0.2, bargroupgap=0.1)
+        
+        st.plotly_chart(fig1, use_container_width=True)
+        st.plotly_chart(fig2, use_container_width=True)
     else:
-        efficiency_message = "Efficiency is matching the standard perfectly."
-
-    st.write(f"📊 The **average overall efficiency** is **{avg_efficiency:.2f}**, "
-             f"while the **standard efficiency** is **{avg_standard:.2f}**.")
-    st.write(efficiency_message)
+        st.error(f"The uploaded file is missing required columns: {missing_columns}")
+else:
+    st.warning("Please upload a file to generate the graphs.")
